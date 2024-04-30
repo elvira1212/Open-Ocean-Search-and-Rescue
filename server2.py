@@ -13,27 +13,26 @@ app = Flask(__name__)
 dir_notifications = '/home/searchandrescue/notifications/'
 listdir_notifications = ['/home/searchandrescue/notifications/life_raft/', '/home/searchandrescue/notifications/life_ring/', '/home/searchandrescue/notifications/life_vest/']
 
-mutex = Lock()
+#targets = 
+
+os_lock = Lock()
+
+
 display_message = Condition()
 display_timestamp = Condition()
 message = ''
 timestamp = datetime.time()
  
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
-
-@app.route('/select')
-def select():
     if request.method == 'POST':
         print(request.form.getlist('target'))
+    return render_template('index.html')
 
-def stream(cap, model):   
+def stream(cap, model):
     while cap.isOpened:
         # Capture frame-by-frame
         success, frame = cap.read()
-        # Get target objects
-        #targets = request.form.getlist('target')
         
         if success:
             # run model
@@ -52,14 +51,16 @@ def stream(cap, model):
                        b'Content-Type: image/jpeg\r\n\r\n' + byte_frame + b'\r\n')
             
             # access shared resource
-            with mutex:
+            with os_lock:
                 # save crop
                 for result in results:
                     result.save_crop(dir_notifications, 'img')
         
             if cv2.waitKey(1) == ord('q'):
+                cap.release()
                 break
         else:
+            cap.release()
             break
 
 def notify():
@@ -67,7 +68,7 @@ def notify():
         # go through the folders for each class
         for directory in listdir_notifications:
             # access shared resource
-            with mutex:
+            with os_lock:
                 # go through every image saved in the folder
                 images = os.listdir(directory)
             if (len(images) != 0):
@@ -87,14 +88,11 @@ def notify():
             else:
                 # delay between os calls
                 time.sleep(1)
-                
-#def send():
-    #while True:
-        #yield (b'')
-        #display_message.wait()
 
 @app.route('/live_feed')
 def live_feed():
+    #delay between reloads (allows camera to release)
+    time.sleep(5)
     return Response(stream(cv2.VideoCapture(0), YOLO('best.pt')),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
@@ -111,3 +109,5 @@ def notifications():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
+    
+cap.release()
