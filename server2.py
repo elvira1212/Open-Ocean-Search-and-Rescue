@@ -6,8 +6,7 @@ from flask import Flask, render_template, Response, request, session
 import os
 import datetime
 import time
-from threading import Condition, Lock
-
+from threading import Lock
 
 app = Flask(__name__)
 app.secret_key = 'DEVELOPMENT_KEY'
@@ -20,20 +19,6 @@ classes = [0,1,2]
 
 os_lock = Lock()
 targets_lock = Lock()
-
-display_message = Condition()
-display_timestamp = Condition()
-message = ''
-timestamp = datetime.time()
-
-#def get_classes():
-    #if 'classes' not in g:
-        #g.classes = [0,1,2]
-    #return g.classes
-
-#@app.teardown_appcontext
-#def teardown_classes(exception):
-    #classes = g.pop('classes', None)
  
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -57,8 +42,6 @@ def stream(cap, model, target_mask):
             # get annotated frame as numpy array
             annotated_frame = results[0].plot()
             
-            #cv2.imshow(annotated_frame)
-            
             # encode as JPEG and translate to byte stream
             success, encoded_frame = cv2.imencode('.jpeg', annotated_frame)
             if success:
@@ -70,7 +53,7 @@ def stream(cap, model, target_mask):
             with os_lock:
                 # save crop
                 for result in results:
-                    result.save_crop(dir_notifications, datetime.datetime.now().strftime("%H-%M-%S"))
+                    result.save_crop(dir_notifications, datetime.datetime.now().strftime("%H:%M:%S"))
         
             if cv2.waitKey(1) == ord('q'):
                 cap.release()
@@ -91,6 +74,21 @@ def notify():
                 for image in images:
                     # get image of object
                     cropped_frame = cv2.imread(directory + image)
+                    # resize
+                    maxwidth, maxheight = 640, 480
+                    f1 = maxwidth / cropped_frame.shape[1]
+                    f2 = maxheight / cropped_frame.shape[0]
+                    f = min(f1, f2)
+                    dim = (int(cropped_frame.shape[1] * f),int(cropped_frame.shape[0] * f))
+                    cropped_frame = cv2.resize(cropped_frame, dim)
+                    # add watermark
+                    org = (50,50)
+                    font = cv2.FONT_HERSHEY_PLAIN
+                    fontScale = 1
+                    color = (0,0,255)
+                    thickness = 1
+                    watermark = directory.replace(dir_notifications, '') + image.replace('.jpg', '')
+                    cropped_frame = cv2.putText(cropped_frame, watermark, org, font, fontScale, color, thickness, cv2.LINE_AA)
                     # encode as JPEG and translate to byte stream
                     success, encoded_frame = cv2.imencode('.jpeg', cropped_frame)
                     if success:
@@ -120,11 +118,6 @@ def live_feed():
 def notifications():
     return Response(notify(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
-
-#@app.route('/message')
-#def message():
-    #return Response(send(),
-                    #mimetype='text/html')
     
 
 if __name__ == '__main__':
