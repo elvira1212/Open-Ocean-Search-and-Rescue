@@ -1,0 +1,39 @@
+<html>
+  <head>
+    <title>Open Ocean Search and Rescue Device</title>
+  </head>
+  <body>
+    <div class="float-container" style="height: 600px; background-color: #B2B4B2">
+      <div id="tracking" class="float-child" style="float: left; padding: 20px; background-color: #C8102E">    
+        <h1 style="text-align: center; color: white; font-family: 'Lucida Console', monospace">Live Tracking Feed</h1>
+        <img src="{{ url_for('live_feed') }}">
+      </div>
+      <div id="notifications" class="float-child" style="float: left; padding: 20px; background-color: #B2B4B2">
+        <h1 style="text-align: center; color: white; font-family: 'Lucida Console', monospace">Notifications</h1>
+        <img src="{{ url_for('notifications') }}">
+      </div>
+    </div>
+    <div id="inputs" style="clear: both; padding: 20px; background-color: #76232F; color: white; font-family: 'Lucida Console', monospace">
+      <form method="post">
+        <fieldset style="border-color: white">
+          <legend>Target Objects</legend>
+          <div>
+            <input type="checkbox" id="life_raft", name="target" value=0 {{ 'checked="checked"' if '0' in selections else "" }}>
+            <label for="life_raft">Orange Multi Person Life Raft</label>
+          </div>
+          <div>
+            <input type="checkbox" id="life_ring", name="target" value=1 {{ 'checked="checked"' if '1' in selections else "" }}>
+            <label for="life_ring">Orange Life Ring</label>
+          </div>
+          <div>
+            <input type="checkbox" id="life_vest", name="target" value=2 {{ 'checked="checked"' if '2' in selections else "" }}>
+            <label for="life_vest">Orange Life Vest</label>
+          </div>
+          <div>
+            <button type="submit">Track</button>
+          </div>
+        </fieldset>
+      </form>
+    </div>
+  </body>
+</html>

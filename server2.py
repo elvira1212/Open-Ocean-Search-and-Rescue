@@ -8,6 +8,7 @@ import datetime
 import time
 from threading import Condition, Lock
 
+
 app = Flask(__name__)
 app.secret_key = 'DEVELOPMENT_KEY'
 
@@ -36,11 +37,12 @@ timestamp = datetime.time()
  
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    selections = ['0','1','2']
     if request.method == 'POST':
         selections = request.form.getlist('target')
-        session["classes"] = [eval(i) for i in selections]
-        print(selections)                    
-    return render_template('index.html')
+    session["classes"] = [eval(i) for i in selections]
+    print(selections)                    
+    return render_template('index.html', selections=selections)
 
 def stream(cap, model, target_mask):
     while cap.isOpened:
@@ -68,7 +70,7 @@ def stream(cap, model, target_mask):
             with os_lock:
                 # save crop
                 for result in results:
-                    result.save_crop(dir_notifications, 'img')
+                    result.save_crop(dir_notifications, datetime.datetime.now().strftime("%H-%M-%S"))
         
             if cv2.waitKey(1) == ord('q'):
                 cap.release()
